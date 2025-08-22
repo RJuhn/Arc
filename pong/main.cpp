@@ -3,6 +3,7 @@
 //linker::input::additional dependensies Msimg32.lib; Winmm.lib
 
 #include "windows.h"
+#include "cmath"
 
 // секция данных игры  
 typedef struct {
@@ -52,7 +53,7 @@ void InitGame()
 
     ball.dy = (rand() % 65 + 35) / 100.;//формируем вектор полета шарика
     ball.dx = -(1 - ball.dy);//формируем вектор полета шарика
-    ball.speed = 30;
+    ball.speed = 5;
     ball.rad = 20;
     ball.x = racket.x;//x координата шарика - на середие ракетки
     ball.y = racket.y - ball.rad;//шарик лежит сверху ракетки
@@ -146,7 +147,7 @@ void ShowRacketAndBall()
 {
     ShowBitmap(window.context, 0, 0, window.width, window.height, hBack);//задний фон
     ShowBitmap(window.context, racket.x - racket.width / 2., racket.y, racket.width, racket.height, racket.hBitmap);// ракетка игрока
-    ShowBitmap(window.context, ball.x - ball.rad, ball.y - ball.rad, 2 * ball.rad, 2 * ball.rad, ball.hBitmap, true);// шарик
+    
 
     for (int X = 0; X < Xblocks; X++) {
 
@@ -159,6 +160,8 @@ void ShowRacketAndBall()
 
         }
     }
+
+    ShowBitmap(window.context, ball.x - ball.rad, ball.y - ball.rad, 2 * ball.rad, 2 * ball.rad, ball.hBitmap, true);// шарик
 }
 
 void LimitRacket()
@@ -229,71 +232,79 @@ void CheckFloor()
 
 void CheckBlocks() {
     
-    float nextX = ball.x + ball.dx * ball.speed;
+    float nextX = ball.dx * ball.speed;
+    float nextY = ball.dy * ball.speed;
+    float L = sqrt(pow(nextX, 2) + pow(nextY, 2));
     //ball.dx * ball.speed - полное перемещение шарика за кадр
-    float nextY = ball.y + ball.dy * ball.speed;
 
+                for (float i = 0; i < L; i++) {
 
-    for (int X = 0; X < Xblocks; X++) {
+                    float ddx = ball.x + nextX * i / L;
+                    float ddy = ball.y + nextY * i / L;
 
-        for (int Y = 0; Y < Yblocks; Y++) {
+                    SetPixel(window.context, ddx, ddy, RGB(255, 255, 255));
 
-                int block_x1 = blocks[X][Y].x;
-                int block_x2 = blocks[X][Y].x + blocks[X][Y].width;
-                int block_y1 = blocks[X][Y].y;
-                int block_y2 = blocks[X][Y].y + blocks[X][Y].height;
+                    for (int X = 0; X < Xblocks; X++) {
 
-                if (blocks[X][Y].status) {
-                    if (nextX >= block_x1 and nextX <= block_x2 and nextY >= block_y1 and nextY <= block_y2) {
+                        for (int Y = 0; Y < Yblocks; Y++) {
 
-                        
-                        if (ball.dx > 0) {
-                            // Движется вправо - столкновение с левой стороной блока
-                            ball.dx = -ball.dx;
-                        }
-                        else if (ball.dx < 0) {
-                            
-                            ball.dx = -ball.dx;
-                        }
+                            int block_x1 = blocks[X][Y].x;
+                            int block_x2 = blocks[X][Y].x + blocks[X][Y].width;
+                            int block_y1 = blocks[X][Y].y;
+                            int block_y2 = blocks[X][Y].y + blocks[X][Y].height;
 
-                        if (ball.dy > 0) {
-                            
-                            ball.dy = -ball.dy;
-                        }
-                        else if (ball.dy < 0) {
-                            
-                            ball.dy = -ball.dy;
-                        }
+                            int top = (block_y2 - ddx);
+                            int bottom = (ddx + block_y1);
+                            int left = (block_x2 - ddy);
+                            int right = (ddy + block_x1);
 
-                        blocks[X][Y].status = false;
-                        return;
+                            int xmin = min(left, right);
+                            int ymin = min(top, bottom);
 
-                    }
+                            if (blocks[X][Y].status) {
+
+                                if ((ddx > block_x1 and ddx <= block_x2) and (ddy > block_y1 and ddy <= block_y2)) {
+
+                                    if (xmin < ymin) {
+                                        ball.dx *= -1;
+                                    }
+                                    else {
+                                        ball.dy *= -1;
+                                    }
+                                    blocks[X][Y].status = false;
+                                    return;
+
+                                }
+
+                            }
+           
                 }
-                
-                //int top = (block_y2 - y1);
-                //int bottom = (y1 + block_y1);
-                //int left = (block_x2 - x1);
-                //int right = (x1 + block_x1);
-                //
-                //int xmin = min(left, right);
-                //int ymin = min(top, bottom);
-
                 //if (blocks[X][Y].status) {
+                //    if (nextX >= block_x1 and nextX <= block_x2 and nextY >= block_y1 and nextY <= block_y2) {
 
-                //    if ((x1 >= block_x1 and x1 <= block_x2) and (y1 >= block_y1 and y1 <= block_y2)) {
+                //        
+                //        if (ball.dx > 0) {
+                //            // Движется вправо - столкновение с левой стороной блока
+                //            ball.dx = -ball.dx;
+                //        }
+                //        else if (ball.dx < 0) {
+                //            
+                //            ball.dx = -ball.dx;
+                //        }
 
-                //        if (xmin < ymin) {
-                //            ball.dx *= -1;
+                //        if (ball.dy > 0) {
+                //            
+                //            ball.dy = -ball.dy;
                 //        }
-                //        else {
-                //            ball.dy *= -1;
+                //        else if (ball.dy < 0) {
+                //            
+                //            ball.dy = -ball.dy;
                 //        }
+
                 //        blocks[X][Y].status = false;
                 //        return;
 
                 //    }
-
                 //}
 
             
@@ -358,13 +369,17 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     {
         ShowRacketAndBall();//рисуем фон, ракетку и шарик
         ShowScore();//рисуем очик и жизни
-        BitBlt(window.device_context, 0, 0, window.width, window.height, window.context, 0, 0, SRCCOPY);//копируем буфер в окно
-        Sleep(16);//ждем 16 милисекунд (1/количество кадров в секунду)
 
         ProcessInput();//опрос клавиатуры
         LimitRacket();//проверяем, чтобы ракетка не убежала за экран
-        ProcessBall();//перемещаем шарик
+        
         ProcessRoom();//обрабатываем отскоки от стен и каретки, попадание шарика в картетку
+
+        BitBlt(window.device_context, 0, 0, window.width, window.height, window.context, 0, 0, SRCCOPY);//копируем буфер в окно
+        Sleep(16);//ждем 16 милисекунд (1/количество кадров в секунду)
+
+        ProcessBall();//перемещаем шарик
+
     }
 
 }
