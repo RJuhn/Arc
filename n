@@ -53,7 +53,7 @@ void InitGame()
 
     ball.dy = (rand() % 65 + 35) / 100.;//формируем вектор полета шарика
     ball.dx = -(1 - ball.dy);//формируем вектор полета шарика
-    ball.speed = 5;
+    ball.speed = 30;
     ball.rad = 20;
     ball.x = racket.x;//x координата шарика - на середие ракетки
     ball.y = racket.y - ball.rad;//шарик лежит сверху ракетки
@@ -194,7 +194,7 @@ void ShowRacketAndBall()
         }
     }
 
-    ShowBitmap(window.context, ball.x - ball.rad, ball.y - ball.rad, 2 * ball.rad, 2 * ball.rad, ball.hBitmap, true);// шарик
+  //  ShowBitmap(window.context, ball.x - ball.rad, ball.y - ball.rad, 2 * ball.rad, 2 * ball.rad, ball.hBitmap, true);// шарик
 }
 
 void LimitRacket()
@@ -246,7 +246,7 @@ void CheckFloor()
 
                 ProcessSound("fail.wav");//играем звук
 
-                if (game.balls < 9) { //проверка условия окончания "жизней"
+                if (game.balls < -20) { //проверка условия окончания "жизней"
 
                     MessageBoxA(window.hWnd, "game over", "", MB_OK);//выводим сообщение о проигрыше
                     InitGame();//переинициализируем игру
@@ -291,10 +291,10 @@ void CheckBlocks() {
                             int block_y1 = blocks[X][Y].y;
                             int block_y2 = blocks[X][Y].y + blocks[X][Y].height;
 
-                            int top = (block_y2 - ddx);
-                            int bottom = (ddx + block_y1);
-                            int left = (block_x2 - ddy);
-                            int right = (ddy + block_x1);
+                            int top = (ddy - block_y1);
+                            int bottom = (block_y2 - ddy);
+                            int left = (ddx - block_x1);
+                            int right = (block_x2 - ddx);
 
                             int xmin = min(left, right);
                             int ymin = min(top, bottom);
@@ -309,11 +309,11 @@ void CheckBlocks() {
                                     else {
                                         ball.dy *= -1;
                                     }
-                                    if (!GetAsyncKeyState(VK_F3)) {
+                                 //   if (!GetAsyncKeyState(VK_F3)) {
 
                                         blocks[X][Y].status = false;
 
-                                    }
+                                   // }
                                     return;
 
                                 }
