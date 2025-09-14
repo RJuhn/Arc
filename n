@@ -82,7 +82,7 @@ void InitGame()
 
 bool DebugModSwitch;
 
-void DebugMod(){
+void DebugMod() {
 
     POINT cursorPos;
 
@@ -180,7 +180,7 @@ void ShowRacketAndBall()
 {
     ShowBitmap(window.context, 0, 0, window.width, window.height, hBack);//задний фон
     ShowBitmap(window.context, racket.x - racket.width / 2., racket.y, racket.width, racket.height, racket.hBitmap);// ракетка игрока
-    
+
 
     for (int X = 0; X < Xblocks; X++) {
 
@@ -194,7 +194,7 @@ void ShowRacketAndBall()
         }
     }
 
-  //  ShowBitmap(window.context, ball.x - ball.rad, ball.y - ball.rad, 2 * ball.rad, 2 * ball.rad, ball.hBitmap, true);// шарик
+    //  ShowBitmap(window.context, ball.x - ball.rad, ball.y - ball.rad, 2 * ball.rad, 2 * ball.rad, ball.hBitmap, true);// шарик
 }
 
 void LimitRacket()
@@ -262,71 +262,105 @@ void CheckFloor()
         }
     }
 }
-/*
-* нужно сделать так, чтобы шарик перемещался не автоматически, а по курсору (по нажатию)
-* нужно сделать так, чтобы при ударе блоки не пропадали
-* сделать отладочный режим
-*/
+
+
+void drawvector(float ddx1, float ddy1) {
+    float nextX = ball.dx * ball.speed;
+    float nextY = ball.dy * ball.speed;
+    float L = sqrt(pow(nextX, 2) + pow(nextY, 2));
+
+    for (float i = 0; i < L; i++) {
+        float ddx = ball.x + nextX * i / L;
+        float ddy = ball.y + nextY * i / L;
+
+
+
+
+
+    SetPixel(window.context, next_x, next_y, RGB(255, 255, 255));
+    SetPixel(window.context, ddx1, ddy1, RGB(255, 255, 255));
+
+
+};
 
 void CheckBlocks() {
-    
+
     float nextX = ball.dx * ball.speed;
     float nextY = ball.dy * ball.speed;
     float L = sqrt(pow(nextX, 2) + pow(nextY, 2));
     //ball.dx * ball.speed - полное перемещение шарика за кадр
 
-                for (float i = 0; i < L; i++) {
+    for (float i = 0; i < L; i++) {
+        float ddx = ball.x + nextX * i / L;
+        float ddy = ball.y + nextY * i / L;
 
-                    float ddx = ball.x + nextX * i / L;
-                    float ddy = ball.y + nextY * i / L;
 
-                    SetPixel(window.context, ddx, ddy, RGB(255, 255, 255));
+   /*     struct history {
 
-                    for (int X = 0; X < Xblocks; X++) {
+            float ddx1;
+            float ddy1;
 
-                        for (int Y = 0; Y < Yblocks; Y++) {
+        };
+        
+        {
+            history ddx;
+            float ddx = ball.x + nextX * i / L;
+            float ddy = ball.y + nextY * i / L;
+            SetPixel(window.context, ddx, ddy, RGB(255, 255, 255));
+        }*/
+        
 
-                            int block_x1 = blocks[X][Y].x;
-                            int block_x2 = blocks[X][Y].x + blocks[X][Y].width;
-                            int block_y1 = blocks[X][Y].y;
-                            int block_y2 = blocks[X][Y].y + blocks[X][Y].height;
+        
 
-                            int top = (ddy - block_y1);
-                            int bottom = (block_y2 - ddy);
-                            int left = (ddx - block_x1);
-                            int right = (block_x2 - ddx);
+        for (int X = 0; X < Xblocks; X++) {
 
-                            int xmin = min(left, right);
-                            int ymin = min(top, bottom);
+            for (int Y = 0; Y < Yblocks; Y++) {
 
-                            if (blocks[X][Y].status) {
+                int block_x1 = blocks[X][Y].x;
+                int block_x2 = blocks[X][Y].x + blocks[X][Y].width;
+                int block_y1 = blocks[X][Y].y;
+                int block_y2 = blocks[X][Y].y + blocks[X][Y].height;
 
-                                if ((ddx > block_x1 and ddx <= block_x2) and (ddy > block_y1 and ddy <= block_y2)) {
+                int top = (ddy - block_y1);
+                int bottom = (block_y2 - ddy);
+                int left = (ddx - block_x1);
+                int right = (block_x2 - ddx);
 
-                                    if (xmin < ymin) {
-                                        ball.dx *= -1;
-                                    }
-                                    else {
-                                        ball.dy *= -1;
-                                    }
-                                 //   if (!GetAsyncKeyState(VK_F3)) {
+                int xmin = min(left, right);
+                int ymin = min(top, bottom);
 
-                                        blocks[X][Y].status = false;
+                
 
-                                   // }
-                                    return;
+                if (blocks[X][Y].status) {
 
-                                }
+                    if ((ddx > block_x1 and ddx <= block_x2) and (ddy > block_y1 and ddy <= block_y2)) {
 
-                            }
-           
+                        if (xmin < ymin) {
+                            ball.dx *= -1;
+                        }
+                        else {
+                            ball.dy *= -1;
+                        }
+                        
+
+                           if (!GetAsyncKeyState(VK_F3)) {
+
+                            blocks[X][Y].status = false;
+
+                         }
+                       // return;
+
+                    }
+
                 }
-            
+
+            }
+
         }
 
     }
 
-                
+
 }
 void ProcessRoom()
 {
@@ -386,7 +420,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
         ProcessInput();//опрос клавиатуры
         LimitRacket();//проверяем, чтобы ракетка не убежала за экран
-        
+
         ProcessRoom();//обрабатываем отскоки от стен и каретки, попадание шарика в картетку
 
         BitBlt(window.device_context, 0, 0, window.width, window.height, window.context, 0, 0, SRCCOPY);//копируем буфер в окно
