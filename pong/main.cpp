@@ -12,6 +12,15 @@ typedef struct {
     HBITMAP hBitmap;//хэндл к спрайту шарика 
 } sprite;
 
+
+
+
+
+//tes2
+//
+//
+//end
+//tets
 const int Xblocks = 16;
 const int Yblocks = 5;
 
