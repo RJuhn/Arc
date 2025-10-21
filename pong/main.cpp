@@ -12,6 +12,13 @@ typedef struct {
     HBITMAP hBitmap;//хэндл к спрайту шарика 
 } sprite;
 
+
+//test 1
+//
+//
+// end
+
+
 const int Xblocks = 16;
 const int Yblocks = 5;
 
@@ -51,9 +58,9 @@ void InitGame()
     racket.y = window.height - racket.height;//чуть выше низа экрана - на высоту ракетки
 
 
-    ball.dy = (rand() % 65 + 35) / 100.;//формируем вектор полета шарика
+    ball.dy = -(rand() % 65 + 35) / 100.;//формируем вектор полета шарика
     ball.dx = -(1 - ball.dy);//формируем вектор полета шарика
-    ball.speed = 5;
+    ball.speed = 10;
     ball.rad = 20;
     ball.x = racket.x;//x координата шарика - на середие ракетки
     ball.y = racket.y - ball.rad;//шарик лежит сверху ракетки
@@ -78,6 +85,37 @@ void InitGame()
     }
 
 }
+//Отладочный режим
+
+bool DebugModSwitch;
+
+void DebugMod() {
+
+    POINT cursorPos;
+
+    if (GetCursorPos(&cursorPos));
+    ScreenToClient(window.hWnd, &cursorPos);
+    //ShowCursor !!
+    //вывод значений
+
+    SetTextColor(window.context, RGB(255, 7, 0));
+    SetBkColor(window.context, RGB(0, 0, 0));
+    SetBkMode(window.context, TRANSPARENT);
+    auto hFont = CreateFont(50, 0, 0, 0, FW_BOLD, 0, 0, 0, 0, 0, 0, 2, 0, "CALIBRI");
+    auto hTmp = (HFONT)SelectObject(window.context, hFont);
+
+    char txt1[32];//буфер для текста
+    _itoa_s(cursorPos.x, txt1, 10);//преобразование числовой переменной в текст. текст окажется в переменной txt
+    TextOutA(window.context, 1450, 10, "CursorPoint.x", 13);
+    TextOutA(window.context, 1700, 10, (LPCSTR)txt1, strlen(txt1));
+
+    _itoa_s(cursorPos.y, txt1, 10);
+    TextOutA(window.context, 1450, 100, "CursorPoint.y", 13);
+    TextOutA(window.context, 1700, 100, (LPCSTR)txt1, strlen(txt1));
+    ball.x = cursorPos.x;
+    ball.y = cursorPos.y;
+
+};
 
 void ProcessSound(const char* name)//проигрывание аудиофайла в формате .wav, файл должен лежать в той же папке где и программа
 {
@@ -101,10 +139,12 @@ void ShowScore()
     _itoa_s(game.balls, txt, 10);
     TextOutA(window.context, 10, 100, "Balls", 5);
     TextOutA(window.context, 200, 100, (LPCSTR)txt, strlen(txt));
+
 }
 
 void ProcessInput()
 {
+    if (GetAsyncKeyState(VK_F3)) { DebugMod(); }
     if (GetAsyncKeyState(VK_LEFT)) racket.x -= racket.speed;
     if (GetAsyncKeyState(VK_RIGHT)) racket.x += racket.speed;
 
@@ -147,7 +187,7 @@ void ShowRacketAndBall()
 {
     ShowBitmap(window.context, 0, 0, window.width, window.height, hBack);//задний фон
     ShowBitmap(window.context, racket.x - racket.width / 2., racket.y, racket.width, racket.height, racket.hBitmap);// ракетка игрока
-    
+
 
     for (int X = 0; X < Xblocks; X++) {
 
@@ -161,7 +201,7 @@ void ShowRacketAndBall()
         }
     }
 
-    ShowBitmap(window.context, ball.x - ball.rad, ball.y - ball.rad, 2 * ball.rad, 2 * ball.rad, ball.hBitmap, true);// шарик
+    //  ShowBitmap(window.context, ball.x - ball.rad, ball.y - ball.rad, 2 * ball.rad, 2 * ball.rad, ball.hBitmap, true);// шарик
 }
 
 void LimitRacket()
@@ -170,157 +210,146 @@ void LimitRacket()
     racket.x = min(racket.x, window.width - racket.width / 2.);//аналогично для правого угла
 }
 
-void CheckWalls()
+void ProcessRoom()
 {
-    if (ball.x < ball.rad || ball.x > window.width - ball.rad)
+    bool tail = false;
+    //обрабатываем стены, потолок и пол. принцип - угол падения равен углу отражения, а значит, для отскока мы можем просто инвертировать часть вектора движения шарика
+    //CheckFloor
+    if (ball.y > window.height - ball.rad - racket.height)
     {
-        ball.dx *= -1;
-        ProcessSound("bounce.wav");
-    }
-}
-
-void CheckRoof()
-{
-    if (ball.y < ball.rad)
-    {
-        ball.dy *= -1;
-        ProcessSound("bounce.wav");
-    }
-}
-
-bool tail = false;
-
-void CheckFloor()
-{
-    if (ball.y > window.height - ball.rad - racket.height)//шарик пересек линию отскока - горизонталь ракетки
-    {
-        if (!tail && ball.x >= racket.x - racket.width / 2. - ball.rad && ball.x <= racket.x + racket.width / 2. + ball.rad)//шарик отбит, и мы не в режиме обработки хвоста
+        if (ball.x >= racket.x - racket.width / 2. - ball.rad &&
+            ball.x <= racket.x + racket.width / 2. + ball.rad)
         {
-            game.score++;//за каждое отбитие даем одно очко
-            ball.speed += 5. / game.score;//но увеличиваем сложность - прибавляем скорости шарику
-            ball.dy *= -1;//отскок
-            racket.width -= 10. / game.score;//дополнительно уменьшаем ширину ракетки - для сложности
-            ProcessSound("bounce.wav");//играем звук отскока
+            game.score++;
+            ball.speed += 5. / game.score;
+            ball.dy = -ball.dy;
+            ball.y = racket.y - ball.rad;
+            racket.width -= 10. / game.score;
+            ProcessSound("bounce.wav");
+
+            ball.y = racket.y - ball.rad;
         }
-        else
-        {//шарик не отбит
+        else if (ball.y - ball.rad > window.height)
+        {
+            // Потеря шарика
+            game.balls--;
+            ProcessSound("fail.wav");
 
-            tail = true;//дадим шарику упасть ниже ракетки
+            if (game.balls <= 0) {
+                MessageBoxA(window.hWnd, "game over", "", MB_OK);
+                InitGame();
+                return;
+            }
 
-            if (ball.y - ball.rad > window.height)//если шарик ушел за пределы окна
-            {
-                game.balls--;//уменьшаем количество "жизней"
+            // Сброс шарика
+            ball.dy = -(rand() % 65 + 35) / 100.;
+            ball.dx = (rand() % 100 - 50) / 100.;
+            ball.x = racket.x;
+            ball.y = racket.y - ball.rad;
+            game.action = false;
+            tail = false;
+        }
+    }
 
-                ProcessSound("fail.wav");//играем звук
+    //CheckBlocks
+    else {
+        float nextX = ball.dx * ball.speed;
+        float nextY = ball.dy * ball.speed;
+        float L = sqrt(nextX * nextX + nextY * nextY);
+        
+        float StepX = nextX / L;
+        float StepY = nextY / L;
+        float StartX = ball.x;
+        float StartY = ball.y;
 
-                if (game.balls < 0) { //проверка условия окончания "жизней"
+        float stepS = 2;
+        bool Collision = false;
 
-                    MessageBoxA(window.hWnd, "game over", "", MB_OK);//выводим сообщение о проигрыше
-                    InitGame();//переинициализируем игру
+        for (float i = 0; i < L; i += stepS) {
+            StartX += StepX * stepS;
+            StartY += StepY * stepS;
+
+            SetPixel(window.context, StartX, StartY, RGB(255, 255, 255));
+
+            // CheckWalls
+            if (StartX < ball.rad) {
+                StepX = -StepX;
+                StartX = ball.rad;
+                Collision = true;
+                ProcessSound("bounce.wav");
+            }
+            else if (StartX > window.width - ball.rad) {
+                StepX = -StepX; // Гарантируем движение влево
+                StartX = window.width - ball.rad;
+                Collision = true;
+                ProcessSound("bounce.wav");
+            }
+            //CheckRoof
+            else if (StartY < ball.rad) {
+                StepY = -StepY; // Гарантируем движение вниз
+                StartY = ball.rad;
+                Collision = true;
+                ProcessSound("bounce.wav");
+            }
+            //CheckBlock
+            else {
+                for (int X = 0; X < Xblocks; X++) {
+                    for (int Y = 0; Y < Yblocks; Y++) {
+
+                        if (blocks[X][Y].status) {
+                            float block_x1 = blocks[X][Y].x;
+                            float block_x2 = blocks[X][Y].x + blocks[X][Y].width;
+                            float block_y1 = blocks[X][Y].y;
+                            float block_y2 = blocks[X][Y].y + blocks[X][Y].height;
+
+                            if ((StartX >= block_x1 && StartX <= block_x2) && 
+                                (StartY >= block_y1 && StartY <= block_y2)) {
+
+                                float top = (StartY - block_y1);
+                                float bottom = (block_y2 - StartY);
+                                float left = (StartX - block_x1);
+                                float right = (block_x2 - StartX);
+
+                                float xmin = min(left, right);
+                                float ymin = min(top, bottom);
+
+                                if (xmin < ymin) {
+                                    StepX = -StepX; // Горизонтальный отскок
+                                }
+                                else {
+                                    StepY = -StepY; // Вертикальный отскок
+                                }
+
+                                if (!GetAsyncKeyState(VK_F3)) {
+                                    blocks[X][Y].status = false;
+                                }
+
+                                Collision = true;
+                                ProcessSound("bounce.wav");
+                            }
+                        }
+                    }
                 }
+            }
 
-                ball.dy = (rand() % 65 + 35) / 100.;//задаем новый случайный вектор для шарика
-                ball.dx = -(1 - ball.dy);
-                ball.x = racket.x;//инициализируем координаты шарика - ставим его на ракетку
-                ball.y = racket.y - ball.rad;
-                game.action = false;//приостанавливаем игру, пока игрок не нажмет пробел
-                tail = false;
+            if (Collision) {
+                break;
+            }
+        }
+
+        if (game.action) {
+            ball.x = StartX;
+            ball.y = StartY;
+        
+            
+            if (Collision) {
+                // Пересчитываем ball.dx и ball.dy из StepX, StepY
+                float newLength = sqrt(StepX * StepX + StepY * StepY);
+                ball.dx = StepX / newLength;
+                ball.dy = StepY / newLength;
             }
         }
     }
-}
-
-void CheckBlocks() {
-    
-    float nextX = ball.dx * ball.speed;
-    float nextY = ball.dy * ball.speed;
-    float L = sqrt(pow(nextX, 2) + pow(nextY, 2));
-    //ball.dx * ball.speed - полное перемещение шарика за кадр
-
-                for (float i = 0; i < L; i++) {
-
-                    float ddx = ball.x + nextX * i / L;
-                    float ddy = ball.y + nextY * i / L;
-
-                    SetPixel(window.context, ddx, ddy, RGB(255, 255, 255));
-
-                    for (int X = 0; X < Xblocks; X++) {
-
-                        for (int Y = 0; Y < Yblocks; Y++) {
-
-                            int block_x1 = blocks[X][Y].x;
-                            int block_x2 = blocks[X][Y].x + blocks[X][Y].width;
-                            int block_y1 = blocks[X][Y].y;
-                            int block_y2 = blocks[X][Y].y + blocks[X][Y].height;
-
-                            int top = (block_y2 - ddx);
-                            int bottom = (ddx + block_y1);
-                            int left = (block_x2 - ddy);
-                            int right = (ddy + block_x1);
-
-                            int xmin = min(left, right);
-                            int ymin = min(top, bottom);
-
-                            if (blocks[X][Y].status) {
-
-                                if ((ddx > block_x1 and ddx <= block_x2) and (ddy > block_y1 and ddy <= block_y2)) {
-
-                                    if (xmin < ymin) {
-                                        ball.dx *= -1;
-                                    }
-                                    else {
-                                        ball.dy *= -1;
-                                    }
-                                    blocks[X][Y].status = false;
-                                    return;
-
-                                }
-
-                            }
-           
-                }
-                //if (blocks[X][Y].status) {
-                //    if (nextX >= block_x1 and nextX <= block_x2 and nextY >= block_y1 and nextY <= block_y2) {
-
-                //        
-                //        if (ball.dx > 0) {
-                //            // Движется вправо - столкновение с левой стороной блока
-                //            ball.dx = -ball.dx;
-                //        }
-                //        else if (ball.dx < 0) {
-                //            
-                //            ball.dx = -ball.dx;
-                //        }
-
-                //        if (ball.dy > 0) {
-                //            
-                //            ball.dy = -ball.dy;
-                //        }
-                //        else if (ball.dy < 0) {
-                //            
-                //            ball.dy = -ball.dy;
-                //        }
-
-                //        blocks[X][Y].status = false;
-                //        return;
-
-                //    }
-                //}
-
-            
-        }
-
-    }
-
-                
-}
-void ProcessRoom()
-{
-    //обрабатываем стены, потолок и пол. принцип - угол падения равен углу отражения, а значит, для отскока мы можем просто инвертировать часть вектора движения шарика
-    CheckWalls();
-    CheckRoof();
-    CheckFloor();
-    CheckBlocks();
 }
 
 void ProcessBall()
@@ -328,8 +357,8 @@ void ProcessBall()
     if (game.action)
     {
         //если игра в активном режиме - перемещаем шарик
-        ball.x += ball.dx * ball.speed;
-        ball.y += ball.dy * ball.speed;
+    //    ball.x += ball.dx * ball.speed;
+     //   ball.y += ball.dy * ball.speed;
     }
     else
     {
@@ -372,7 +401,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
         ProcessInput();//опрос клавиатуры
         LimitRacket();//проверяем, чтобы ракетка не убежала за экран
-        
+
         ProcessRoom();//обрабатываем отскоки от стен и каретки, попадание шарика в картетку
 
         BitBlt(window.device_context, 0, 0, window.width, window.height, window.context, 0, 0, SRCCOPY);//копируем буфер в окно
