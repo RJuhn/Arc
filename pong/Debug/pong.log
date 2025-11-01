@@ -1,26 +1,36 @@
 ﻿  main.cpp
-C:\Users\ratim\source\repos\Arc\pong\main.cpp(50,29): warning C4244: =: преобразование "double" в "float", возможна потеря данных
-C:\Users\ratim\source\repos\Arc\pong\main.cpp(54,35): warning C4244: =: преобразование "double" в "float", возможна потеря данных
-C:\Users\ratim\source\repos\Arc\pong\main.cpp(68,47): warning C4244: =: преобразование "int" в "float", возможна потеря данных
-C:\Users\ratim\source\repos\Arc\pong\main.cpp(69,59): warning C4244: =: преобразование "int" в "float", возможна потеря данных
-C:\Users\ratim\source\repos\Arc\pong\main.cpp(108,23): warning C4244: =: преобразование "LONG" в "float", возможна потеря данных
-C:\Users\ratim\source\repos\Arc\pong\main.cpp(109,23): warning C4244: =: преобразование "LONG" в "float", возможна потеря данных
-C:\Users\ratim\source\repos\Arc\pong\main.cpp(89,34): warning C4390: ";": обнаружен пустой контролируемый оператор; это правильно?
-C:\Users\ratim\source\repos\Arc\pong\main.cpp(153,13): warning C4101: hbm: неиспользованная локальная переменная
-C:\Users\ratim\source\repos\Arc\pong\main.cpp(182,92): warning C4244: аргумент: преобразование "float" в "int", возможна потеря данных
-C:\Users\ratim\source\repos\Arc\pong\main.cpp(182,78): warning C4244: аргумент: преобразование "float" в "int", возможна потеря данных
-C:\Users\ratim\source\repos\Arc\pong\main.cpp(182,68): warning C4244: аргумент: преобразование "float" в "int", возможна потеря данных
-C:\Users\ratim\source\repos\Arc\pong\main.cpp(182,41): warning C4244: аргумент: преобразование "double" в "int", возможна потеря данных
-C:\Users\ratim\source\repos\Arc\pong\main.cpp(191,108): warning C4244: аргумент: преобразование "float" в "int", возможна потеря данных
-C:\Users\ratim\source\repos\Arc\pong\main.cpp(191,88): warning C4244: аргумент: преобразование "float" в "int", возможна потеря данных
-C:\Users\ratim\source\repos\Arc\pong\main.cpp(191,72): warning C4244: аргумент: преобразование "float" в "int", возможна потеря данных
-C:\Users\ratim\source\repos\Arc\pong\main.cpp(191,56): warning C4244: аргумент: преобразование "float" в "int", возможна потеря данных
-C:\Users\ratim\source\repos\Arc\pong\main.cpp(202,16): warning C4244: =: преобразование "double" в "float", возможна потеря данных
-C:\Users\ratim\source\repos\Arc\pong\main.cpp(203,16): warning C4244: =: преобразование "double" в "float", возможна потеря данных
-C:\Users\ratim\source\repos\Arc\pong\main.cpp(217,30): warning C4244: +=: преобразование "double" в "float", возможна потеря данных
-C:\Users\ratim\source\repos\Arc\pong\main.cpp(220,33): warning C4244: -=: преобразование "double" в "float", возможна потеря данных
-C:\Users\ratim\source\repos\Arc\pong\main.cpp(238,43): warning C4244: =: преобразование "double" в "float", возможна потеря данных
-C:\Users\ratim\source\repos\Arc\pong\main.cpp(239,43): warning C4244: =: преобразование "double" в "float", возможна потеря данных
-C:\Users\ratim\source\repos\Arc\pong\main.cpp(267,46): warning C4244: аргумент: преобразование "float" в "int", возможна потеря данных
-C:\Users\ratim\source\repos\Arc\pong\main.cpp(267,38): warning C4244: аргумент: преобразование "float" в "int", возможна потеря данных
+C:\Users\ratim\source\repos\Arc\pong\main.cpp(57,29): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\ratim\source\repos\Arc\pong\main.cpp(61,35): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\ratim\source\repos\Arc\pong\main.cpp(75,47): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
+C:\Users\ratim\source\repos\Arc\pong\main.cpp(76,59): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
+C:\Users\ratim\source\repos\Arc\pong\main.cpp(121,23): warning C4244: '=': conversion from 'LONG' to 'float', possible loss of data
+C:\Users\ratim\source\repos\Arc\pong\main.cpp(122,23): warning C4244: '=': conversion from 'LONG' to 'float', possible loss of data
+C:\Users\ratim\source\repos\Arc\pong\main.cpp(96,34): warning C4390: ';': empty controlled statement found; is this the intent?
+C:\Users\ratim\source\repos\Arc\pong\main.cpp(166,13): warning C4101: 'hbm': unreferenced local variable
+C:\Users\ratim\source\repos\Arc\pong\main.cpp(195,92): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
+C:\Users\ratim\source\repos\Arc\pong\main.cpp(195,78): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
+C:\Users\ratim\source\repos\Arc\pong\main.cpp(195,68): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
+C:\Users\ratim\source\repos\Arc\pong\main.cpp(195,41): warning C4244: 'argument': conversion from 'double' to 'int', possible loss of data
+C:\Users\ratim\source\repos\Arc\pong\main.cpp(204,108): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
+C:\Users\ratim\source\repos\Arc\pong\main.cpp(204,88): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
+C:\Users\ratim\source\repos\Arc\pong\main.cpp(204,72): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
+C:\Users\ratim\source\repos\Arc\pong\main.cpp(204,56): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
+C:\Users\ratim\source\repos\Arc\pong\main.cpp(215,16): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\ratim\source\repos\Arc\pong\main.cpp(216,16): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\ratim\source\repos\Arc\pong\main.cpp(311,27): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\ratim\source\repos\Arc\pong\main.cpp(312,25): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\ratim\source\repos\Arc\pong\main.cpp(314,82): warning C4305: '+=': truncation from 'double' to 'float'
+C:\Users\ratim\source\repos\Arc\pong\main.cpp(355,49): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
+C:\Users\ratim\source\repos\Arc\pong\main.cpp(385,37): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
+C:\Users\ratim\source\repos\Arc\pong\main.cpp(385,34): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
+C:\Users\ratim\source\repos\Arc\pong\main.cpp(399,21): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\ratim\source\repos\Arc\pong\main.cpp(400,21): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\ratim\source\repos\Arc\pong\main.cpp(404,27): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\ratim\source\repos\Arc\pong\main.cpp(405,25): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\ratim\source\repos\Arc\pong\main.cpp(407,58): warning C4305: '+=': truncation from 'double' to 'float'
+C:\Users\ratim\source\repos\Arc\pong\main.cpp(410,42): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
+C:\Users\ratim\source\repos\Arc\pong\main.cpp(410,38): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
+C:\Users\ratim\source\repos\Arc\pong\main.cpp(415,82): warning C4305: '+=': truncation from 'double' to 'float'
+C:\Users\ratim\source\repos\Arc\pong\main.cpp(419,47): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
+C:\Users\ratim\source\repos\Arc\pong\main.cpp(419,38): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
   pong.vcxproj -> C:\Users\ratim\source\repos\Arc\Debug\pong.exe
