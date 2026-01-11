@@ -39,6 +39,23 @@ struct {
 
 HBITMAP hBack;// хэндл для фонового изображения
 
+struct RayResult {
+    bool hit;
+    float hitX, hitY;
+    float normalX, normalY;
+    float distance;
+    int hitType;
+};
+
+enum HitType {
+    WALL_X = 0,
+    WALL_Y = 1,
+    BLOCK = 2,
+    RACKET = 3,
+    FLOOR = 4
+};
+
+
 //cекция кода
 
 void InitGame()
@@ -58,8 +75,9 @@ void InitGame()
     racket.y = window.height - racket.height;//чуть выше низа экрана - на высоту ракетки
 
 
-    ball.dy = -(rand() % 65 + 35) / 100.;//формируем вектор полета шарика
-    ball.dx = -(1 - ball.dy);//формируем вектор полета шарика
+    float angle = (rand() % 120 + 30) * 3.14159 / 180.0;
+    ball.dx = cos(angle);
+    ball.dy = -sin(angle);
     ball.speed = 10;
     ball.rad = 20;
     ball.x = racket.x;//x координата шарика - на середие ракетки
@@ -85,7 +103,355 @@ void InitGame()
     }
 
 }
-//Отладочный режим
+
+
+void Normalize(float& dx, float& dy) {
+    float len = sqrt(dx * dx + dy * dy);
+    if (len > 0) {
+        dx /= len;
+        dy /= len;
+    }
+}
+
+void Reflect(float& dx, float& dy, float nx, float ny) {
+    float dot = dx * nx + dy * ny;
+    dx = dx - 2 * dot * nx;
+    dy = dy - 2 * dot * ny;
+}
+
+// === ЯДРО ФИЗИКИ - ОДНА ФУНКЦИЯ ДЛЯ ВСЕХ ПРОВЕРОК ===
+RayResult CheckCollision(float startX, float startY, float dirX, float dirY, float maxDist, bool forTrace = false) {
+    RayResult result;
+    result.hit = false;
+    result.distance = maxDist;
+
+    if (dirX != 0) {
+        // Левая стена
+        float t = (ball.rad - startX) / dirX;
+        if (t > 0 && t < result.distance) {
+            float y = startY + dirY * t;
+            if (y >= ball.rad && y <= window.height - ball.rad) {
+                result.hit = true;
+                result.distance = t;
+                result.hitX = ball.rad;
+                result.hitY = y;
+                result.normalX = 1.0;
+                result.normalY = 0.0;
+                result.hitType = WALL_X;
+            }
+        }
+
+        // Правая стена
+        t = (window.width - ball.rad - startX) / dirX;
+        if (t > 0 && t < result.distance) {
+            float y = startY + dirY * t;
+            if (y >= ball.rad && y <= window.height - ball.rad) {
+                result.hit = true;
+                result.distance = t;
+                result.hitX = window.width - ball.rad;
+                result.hitY = y;
+                result.normalX = -1.0;
+                result.normalY = 0.0;
+                result.hitType = WALL_X;
+            }
+        }
+    }
+    // Потолок
+    if (dirY != 0) {
+        float t = (ball.rad - startY) / dirY;
+        if (t > 0 && t < result.distance) {
+            float x = startX + dirX * t;
+            if (x >= ball.rad && x <= window.width - ball.rad) {
+                result.hit = true;
+                result.distance = t;
+                result.hitX = x;
+                result.hitY = ball.rad;
+                result.normalX = 0.0;
+                result.normalY = 1.0;
+                result.hitType = WALL_Y;
+            }
+        }
+    }
+
+    // БЛОКИ
+    for (int X = 0; X < Xblocks; X++) {
+        for (int Y = 0; Y < Yblocks; Y++) {
+            if (!blocks[X][Y].status) continue;
+
+            // Расширенный блок
+            float left = blocks[X][Y].x - ball.rad;
+            float right = blocks[X][Y].x + blocks[X][Y].width + ball.rad;
+            float top = blocks[X][Y].y - ball.rad;
+            float bottom = blocks[X][Y].y + blocks[X][Y].height + ball.rad;
+
+            // Алгоритм пересечения луча с прямоугольником
+            float t1 = (left - startX) / dirX;
+            float t2 = (right - startX) / dirX;
+            float t3 = (top - startY) / dirY;
+            float t4 = (bottom - startY) / dirY;
+
+            float tmin = max(min(t1, t2), min(t3, t4));
+            float tmax = min(max(t1, t2), max(t3, t4));
+
+            if (tmin < tmax&& tmax > 0 && tmin < result.distance) {
+                float t = tmin > 0 ? tmin : tmax;
+                if (t > 0) {
+                    result.hit = true;
+                    result.distance = t;
+                    result.hitX = startX + dirX * t;
+                    result.hitY = startY + dirY * t;
+                    result.hitType = BLOCK;
+
+                    // Определяем нормаль
+                    float cx = blocks[X][Y].x + blocks[X][Y].width / 2;
+                    float cy = blocks[X][Y].y + blocks[X][Y].height / 2;
+                    float dx = result.hitX - cx;
+                    float dy = result.hitY - cy;
+
+                    if (fabs(dx) > fabs(dy)) {
+                        result.normalX = (dx > 0) ? -1.0 : 1.0;
+                        result.normalY = 0.0;
+                    }
+                    else {
+                        result.normalX = 0.0f;
+                        result.normalY = (dy > 0) ? -1.0 : 1.0;
+                    }
+                }
+            }
+        }
+    }
+
+    // 4. РАКЕТКА (только если движемся вниз)
+    if (dirY > 0) {
+        float racketTop = racket.y - ball.rad;
+        float t = (racketTop - startY) / dirY;
+
+        if (t > 0 && t < result.distance) {
+            float x = startX + dirX * t;
+            float racketLeft = racket.x - racket.width / 2 - ball.rad;
+            float racketRight = racket.x + racket.width / 2 + ball.rad;
+
+            if (x >= racketLeft && x <= racketRight) {
+                result.hit = true;
+                result.distance = t;
+                result.hitX = x;
+                result.hitY = racketTop;
+                result.normalX = 0.0;
+                result.normalY = -1.0;
+                result.hitType = RACKET;
+            }
+        }
+    }
+
+    // ПОЛ
+    if (dirY > 0) {
+        float t = (window.height - ball.rad - startY) / dirY;
+        if (t > 0 && t < result.distance) {
+            result.hit = true;
+            result.distance = t;
+            result.hitX = startX + dirX * t;
+            result.hitY = window.height - ball.rad;
+            result.normalX = 0.0;
+            result.normalY = -1.0;
+            result.hitType = FLOOR;
+        }
+    }
+
+    return result;
+}
+
+// === ФИЗИКА ИГРЫ ===
+void Physics() {
+    if (!game.action) return;
+
+    float timeLeft = 1.0;
+    float posX = ball.x + ball.rad; // Центр шарика
+    float posY = ball.y + ball.rad;
+    float dirX = ball.dx;
+    float dirY = ball.dy;
+
+    Normalize(dirX, dirY);
+
+    while (timeLeft > 0.001) {
+        // Максимальное расстояние за оставшееся время
+        float maxDist = ball.speed * timeLeft;
+
+        // Проверяем столкновения
+        RayResult hit = CheckCollision(posX, posY, dirX, dirY, maxDist, false);
+
+        if (hit.hit) {
+            // Двигаем до точки столкновения
+            posX += dirX * hit.distance;
+            posY += dirY * hit.distance;
+
+            // Обрабатываем столкновение
+            switch (hit.hitType) {
+            case WALL_X:
+            case WALL_Y:
+                Reflect(dirX, dirY, hit.normalX, hit.normalY);
+                break;
+
+            case BLOCK: {
+                // Находим и уничтожаем блок
+                for (int X = 0; X < Xblocks; X++) {
+                    for (int Y = 0; Y < Yblocks; Y++) {
+                        if (!blocks[X][Y].status) continue;
+
+                        if (posX >= blocks[X][Y].x - ball.rad &&
+                            posX <= blocks[X][Y].x + blocks[X][Y].width + ball.rad &&
+                            posY >= blocks[X][Y].y - ball.rad &&
+                            posY <= blocks[X][Y].y + blocks[X][Y].height + ball.rad) {
+                            blocks[X][Y].status = false;
+                            game.score += 10;
+                            break;
+                        }
+                    }
+                }
+                Reflect(dirX, dirY, hit.normalX, hit.normalY);
+                break;
+            }
+
+            case RACKET: {
+                Reflect(dirX, dirY, hit.normalX, hit.normalY);
+                // Добавляем немного горизонтали в зависимости от места удара
+                float hitPos = (posX - racket.x) / (racket.width / 2);
+                dirX += hitPos * 0.3;
+                Normalize(dirX, dirY);
+                game.score += 5;
+                break;
+            }
+
+            case FLOOR: {
+                // Потеря шарика
+                game.balls--;
+                game.action = false;
+                ball.x = racket.x;
+                ball.y = racket.y - ball.rad;
+
+                if (game.balls <= 0) {
+                    MessageBoxA(window.hWnd, "Game Over", "Арканоид", MB_OK);
+                    // Перезапуск игры
+                    game.score = 0;
+                    game.balls = 9;
+                    for (int X = 0; X < Xblocks; X++)
+                        for (int Y = 0; Y < Yblocks; Y++)
+                            blocks[X][Y].status = true;
+                }
+                return;
+            }
+            }
+
+            // Уменьшаем оставшееся время
+            timeLeft -= hit.distance / ball.speed;
+
+            // Сдвигаем чуть-чуть от точки столкновения
+            posX += dirX * 0.00001;
+            posY += dirY * 0.00001;
+        }
+        else {
+            // Нет столкновений - двигаем на полное расстояние
+            posX += dirX * maxDist;
+            posY += dirY * maxDist;
+            break;
+        }
+    }
+
+    // Обновляем позицию шарика
+    ball.x = posX - ball.rad;
+    ball.y = posY - ball.rad;
+    ball.dx = dirX;
+    ball.dy = dirY;
+}
+
+// трассировка
+void DrawTrace() {
+    if (!game.action) return;
+
+    // центр шарика
+    float startX = ball.x + ball.rad;
+    float startY = ball.y + ball.rad;
+    float dirX = ball.dx;
+    float dirY = ball.dy;
+
+    Normalize(dirX, dirY);
+
+    // Ограничиваем трассировку 3 отскоками или 300 пикселями
+    int maxBounces = 3;
+    float maxTotalDistance = 300.0;
+    float traveled = 0.0;
+    int bounces = 0;
+
+    while (bounces < maxBounces && traveled < maxTotalDistance) {
+        // Доступное расстояние для этого отрезка
+        float rayLength = maxTotalDistance - traveled;
+
+        // Ищем столкновение
+        RayResult hit = CheckCollision(startX, startY, dirX, dirY, rayLength, true);
+
+        float segmentLength;
+        if (hit.hit) {
+            segmentLength = hit.distance;
+        }
+        else {
+            segmentLength = rayLength;
+        }
+
+        // Рисуем отрезок траектории
+        // Разбиваем на 10 частей, рисуем полуокружности
+        int parts = 10;
+        for (int i = 0; i <= parts; i++) {
+            float t = (float)i / parts;
+            float cx = startX + dirX * segmentLength * t;
+            float cy = startY + dirY * segmentLength * t;
+
+            // Угол направления
+            float angle = atan2(dirY, dirX);
+
+            // Рисуем полуокружность (180° впереди)
+            for (float a = angle - 1.57f; a <= angle + 1.57; a += 0.1) {
+                float px = cx + cos(a) * ball.rad;
+                float py = cy + sin(a) * ball.rad;
+
+                // Проверяем границы экрана
+                if (px >= 0 && px <= window.width && py >= 0 && py <= window.height) {
+                    SetPixel(window.context, (int)px, (int)py, RGB(255, 100, 100));
+                }
+            }
+
+            // Соединяем точки (кроме первой итерации)
+            if (i > 0) {
+                float prevX = startX + dirX * segmentLength * ((float)(i - 1) / parts);
+                float prevY = startY + dirY * segmentLength * ((float)(i - 1) / parts);
+
+                // Рисуем линию между центрами
+                float steps = 20.0f;
+                for (int s = 0; s <= steps; s++) {
+                    float st = (float)s / steps;
+                    float lx = prevX + (cx - prevX) * st;
+                    float ly = prevY + (cy - prevY) * st;
+
+                    if (lx >= 0 && lx <= window.width && ly >= 0 && ly <= window.height) {
+                        SetPixel(window.context, (int)lx, (int)ly, RGB(255, 255, 255));
+                    }
+                }
+            }
+        }
+
+        traveled += segmentLength;
+
+        if (hit.hit && hit.hitType != FLOOR) {
+            // Отражаем луч для следующего отрезка
+            Reflect(dirX, dirY, hit.normalX, hit.normalY);
+            startX = hit.hitX;
+            startY = hit.hitY;
+            bounces++;
+        }
+        else {
+            break;
+        }
+    }
+}
+
 
 bool DebugModSwitch;
 
@@ -95,8 +461,6 @@ void DebugMod() {
 
     if (GetCursorPos(&cursorPos));
     ScreenToClient(window.hWnd, &cursorPos);
-    //ShowCursor !!
-    //вывод значений
 
     SetTextColor(window.context, RGB(255, 7, 0));
     SetBkColor(window.context, RGB(0, 0, 0));
@@ -104,8 +468,8 @@ void DebugMod() {
     auto hFont = CreateFont(50, 0, 0, 0, FW_BOLD, 0, 0, 0, 0, 0, 0, 2, 0, "CALIBRI");
     auto hTmp = (HFONT)SelectObject(window.context, hFont);
 
-    char txt1[32];//буфер для текста
-    _itoa_s(cursorPos.x, txt1, 10);//преобразование числовой переменной в текст. текст окажется в переменной txt
+    char txt1[32];
+    _itoa_s(cursorPos.x, txt1, 10);
     TextOutA(window.context, 1450, 10, "CursorPoint.x", 13);
     TextOutA(window.context, 1700, 10, (LPCSTR)txt1, strlen(txt1));
 
@@ -216,296 +580,16 @@ void LimitRacket()
     racket.x = min(racket.x, window.width - racket.width / 2.);//аналогично для правого угла
 }
 
-bool tail = false;
 
-bool CheckWalls(float checkX, float checkY) {
-    if (checkX < 0 || checkX > window.width) {
-        return true;
-    }
-    return false;
-}
-
-bool CheckRoof(float checkX, float checkY) {
-    if (checkY < 0) {
-        return true;
-    }
-    return false;
-}
-int CheckBlocks(float checkX, float checkY) {
-    for (int X = 0; X < Xblocks; X++) {
-        for (int Y = 0; Y < Yblocks; Y++) {
-            if (!blocks[X][Y].status) continue;
-
-            float block_x1 = blocks[X][Y].x;
-            float block_x2 = blocks[X][Y].x + blocks[X][Y].width;
-            float block_y1 = blocks[X][Y].y;
-            float block_y2 = blocks[X][Y].y + blocks[X][Y].height;
-
-            if (checkX > block_x1 and checkX < block_x2 and
-                checkY > block_y1 and checkY < block_y2) {
-
-                float left = checkX - block_x1;
-                float right = block_x2 - checkX;
-                float top = checkY - block_y1;
-                float bottom = block_y2 - checkY;
-
-                float xmin = min(left, right);
-                float ymin = min(top, bottom);
-
-                if (!GetAsyncKeyState(VK_F3)) {
-                    blocks[X][Y].status = false;
-                }
-
-                if (xmin < ymin) return 1;
-                else return -1;
-            }
-        }
-    }
-    return 0;
-}
-
-int CheckFloor(float checkX, float checkY) {
-    // Для пола проверяем по ЦЕНТРУ шарика (ракетка)
-    if (checkY > window.height - ball.rad - racket.height) {
-        if (!tail and checkX >= racket.x - racket.width / 2 - ball.rad and
-            checkX <= racket.x + racket.width / 2 + ball.rad) {
-            // Отбитие
-            game.score++;
-            //ball.speed += 5 / game.score;
-            racket.width -= 10 / game.score;
-            ProcessSound("bounce.wav");
-            return 1;
-        }
-        else {
-            tail = true;
-            if (checkY > window.height) {
-                game.balls--;
-                ProcessSound("fail.wav");
-                if (game.balls <= 0) {
-                    MessageBoxA(window.hWnd, "game over", "", MB_OK);
-                    InitGame();
-                }
-                return 2;
-            }
-        }
-    }
-    return 0;
-}
-
-void Physics() {
-    if (!game.action) return;
-
-    float timeLeft = 1.0;
-    float currentX = ball.x;
-    float currentY = ball.y;
-    float currentDx = ball.dx;
-    float currentDy = ball.dy;
-
-    while (timeLeft > 0.001 and traceCount < 20) {
-        float nextX = currentX + currentDx * ball.speed * timeLeft;
-        float nextY = currentY + currentDy * ball.speed * timeLeft;
-
-        bool collision = false;
-
-        float angle = atan2(currentDy, currentDx);
-        float startAngle = angle - 3.14159 / 2;  // -90°
-        float endAngle = angle + 3.14159 / 2;    // +90°
-
-        for (float a = startAngle; a <= endAngle and !collision; a += (3.14159 / 6)) {
-            // Точка на полуокружности
-            float checkX = nextX + cos(a) * ball.rad;
-            float checkY = nextY + sin(a) * ball.rad;
-
-            if (CheckWalls(checkX, checkY)) {
-                currentDx = -currentDx;
-                timeLeft *= 0.5;
-                collision = true;
-                break;
-            }
-
-            if (CheckRoof(checkY, checkY)) {
-                currentDy = -currentDy;
-                timeLeft *= 0.5;
-                collision = true;
-                break;
-            }
-
-            int checkblock = CheckBlocks(checkX, checkY);
-            if (checkblock == 1) {
-                currentDx = -currentDx;
-                timeLeft *= 0.5;
-                collision = true;
-                break;
-            }
-            else if (checkblock == -1) {
-                currentDy = -currentDy;
-                timeLeft *= 0.5;
-                collision = true;
-                break;
-            }
-
-            int checkfloor = CheckFloor(nextX, nextY);
-            if (checkfloor == 1) {
-                currentDy = - currentDy;
-                timeLeft *= 0.5;
-                collision = true;
-                break;
-            }
-            else if (checkfloor == 2) {
-                currentDy = -(rand() % 65 + 35) / 100;
-                currentDx = -(1 - currentDy);
-                currentX = racket.x;
-                currentY = racket.y - ball.rad;
-                game.action = false;
-                tail = false;
-                collision = true;
-                break;
-            }
-        }
-
-        if (!collision) {
-            currentX = nextX;
-            currentY = nextY;
-            break;
-        }
-    }
-
-    ball.x = currentX;
-    ball.y = currentY;
-    ball.dx = currentDx;
-    ball.dy = currentDy;
-}
-
-void DraweTraceline(float x1, float y1, float x2, float y2) {
-    float steps = 100.0;
-    for (int i = 0; i <= steps; i++) {
-        float t = i / steps;
-        float x = x1 + (x2 - x1) * t;
-        float y = y1 + (y2 - y1) * t;
-        SetPixel(window.context, x, y, RGB(255, 255, 255));
-    }
-}
-
-
-void DrawAtanLine() {
-    if (!game.action) return;
-
-    float traceX = ball.x;
-    float traceY = ball.y;
-    float traceDx = ball.dx;
-    float traceDy = ball.dy;
-
-    for (int i = 0; i < 5; i++) {
-        float nextX = traceX + traceDx * ball.speed * 1.0;
-        float nextY = traceY + traceDy * ball.speed * 1.0;
-
-        // ОТРИСОВКА ПОЛУОКРУЖНОСТИ в начальной точке
-        float currentAngle = atan2(traceDy, traceDx);
-        float startAngle = currentAngle - 3.14159 / 2;
-        float endAngle = currentAngle + 3.14159 / 2;
-
-        for (float a = startAngle; a <= endAngle; a += 0.1) {
-            float x = traceX + cos(a) * ball.rad;
-            float y = traceY + sin(a) * ball.rad;
-            SetPixel(window.context, x, y, RGB(255, 255, 255));
-        }
-
-        bool collision = false;
-
-        for (float a = startAngle; a <= endAngle and !collision; a += (3.14159 / 6)) {
-            float checkX = nextX + cos(a) * ball.rad;
-            float checkY = nextY + sin(a) * ball.rad;
-
-            SetPixel(window.context, checkX, checkY, RGB(255, 255, 255));
-
-            if (checkX < 0 || checkX > window.width) {
-                traceDx = -traceDx;
-                collision = true;
-                break;
-            }
-
-            if (checkY < 0) {
-                traceDy = -traceDy;
-                collision = true;
-                break;
-            }
-
-            for (int X = 0; X < Xblocks and !collision; X++) {
-                for (int Y = 0; Y < Yblocks and !collision; Y++) {
-                    if (!blocks[X][Y].status) continue;
-
-                    float block_x1 = blocks[X][Y].x;
-                    float block_x2 = blocks[X][Y].x + blocks[X][Y].width;
-                    float block_y1 = blocks[X][Y].y;
-                    float block_y2 = blocks[X][Y].y + blocks[X][Y].height;
-
-                    if (checkX > block_x1 && checkX < block_x2 &&
-                        checkY > block_y1 && checkY < block_y2) {
-
-                        float left = checkX - block_x1;
-                        float right = block_x2 - checkX;
-                        float top = checkY - block_y1;
-                        float bottom = block_y2 - checkY;
-
-                        float xmin = min(left, right);
-                        float ymin = min(top, bottom);
-
-                        if (xmin < ymin) {
-                            traceDx = -traceDx;
-                        }
-                        else {
-                            traceDy = -traceDy;
-                        }
-                        collision = true;
-                        break;
-                    }
-                }
-            }
-
-            if (checkY > window.height - ball.rad - racket.height) {
-                if (nextX >= racket.x - racket.width / 2 - ball.rad &&
-                    nextX <= racket.x + racket.width / 2 + ball.rad) {
-                    traceDy = -traceDy;
-                    collision = true;
-                    break;
-                }
-                else {
-                    DraweTraceline(traceX, traceY, nextX, nextY);
-                    return;
-                }
-            }
-        }
-
-        DraweTraceline(traceX, traceY, nextX, nextY);
-
-        if (!collision) {
-            traceX = nextX;
-            traceY = nextY;
-        }
-    }
-}
 
 void ProcessRoom()
 {
     //обрабатываем стены, потолок и пол. принцип - угол падения равен углу отражения, а значит, для отскока мы можем просто инвертировать часть вектора движения шарика
-    Physics();
-    DrawAtanLine();
+    Physics();      // вместо старой Physics
+    DrawTrace();
 }
 
-void ProcessBall()
-{
-    if (game.action)
-    {
-        //если игра в активном режиме - перемещаем шарик
-        ball.x += ball.dx * ball.speed;
-        ball.y += ball.dy * ball.speed;
-    }
-    else
-    {
-        //иначе - шарик "приклеен" к ракетке
-        ball.x = racket.x;
-    }
-}
+
 
 void InitWindow()
 {
